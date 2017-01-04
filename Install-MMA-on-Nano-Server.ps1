@@ -1,14 +1,50 @@
-﻿<#
-    .SYNOPSIS 
-     Remotely installs the Microsoft Monitoring Agent on to Nano Servers. 
+﻿
+<#PSScriptInfo
 
-    .EXAMPLE
-     Install-MMA-on-Nano-Server.ps1 MyNanoServerName 1234567 1234567
+.VERSION 1.0.2
 
-    .DESCRIPTION
-     This script installs the MMA on the specified Nano Server machine. The agent install file MMASetup-AMD64.exe must exist in the current path. Download from https://go.microsoft.com/fwlink/?LinkId=828603 or your OMS workspace.
-     This script has to be run with administrative privileges. The user account which is used to connect to the Nano Server must also have administrative rights on the Nano Server.
+.GUID 5da7965b-b1bc-4e4b-80ff-9fd89192cc7f
+
+.AUTHOR Gregory May
+
+.COMPANYNAME 
+
+.COPYRIGHT 
+
+.TAGS Nano MMA Microsoft Monitoring Agent
+
+.LICENSEURI 
+
+.PROJECTURI 
+
+.ICONURI 
+
+.EXTERNALMODULEDEPENDENCIES 
+
+.REQUIREDSCRIPTS 
+
+.EXTERNALSCRIPTDEPENDENCIES 
+
+.RELEASENOTES
+
+
 #>
+
+<# 
+
+.DESCRIPTION 
+ This script installs MMA on Nano Server without SCOM dependancies.
+ The agent install file MMASetup-AMD64.exe must exist in the current path. Download from https://go.microsoft.com/fwlink/?LinkId=828603 or your OMS workspace.
+ This script has to be run with administrative privileges. The user account which is used to connect to the Nano Server must also have administrative rights on the Nano Server.
+
+.SYNOPSIS 
+Remotely installs the Microsoft Monitoring Agent on to Nano Servers. 
+
+.EXAMPLE
+Install-MMA-on-Nano-Server.ps1 MyNanoServerName 1234567 1234567
+
+#> 
+
 
 param (
 [Parameter(Mandatory=$true)][ValidateNotNullOrEmpty()] [string]$NanoServer, 
@@ -36,6 +72,6 @@ If ($?) {
         Remove-Item C:\MMASetup-AMD64.exe -Force } -ArgumentList $installcmd, $installargs
 }
 Else {
-    Write-Output "Unable to Copy File. Check Powershell version = WMF5"
+    Write-Output "Unable to Copy File. Check Powershell version = WMF5 and MMASetup-AMD64.exe (https://go.microsoft.com/fwlink/?LinkId=828603) is in current path."
     Break
 }
