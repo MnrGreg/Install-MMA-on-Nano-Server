@@ -33,15 +33,17 @@
 <# 
 
 .DESCRIPTION 
- This script installs MMA on Nano Server without SCOM/AD dependancies for attaching to Azure OMS only.
- The SCOM/MMA agent install files "\NanoAgent\" must exist in the current path. Copy the folder from your SCOM2016 ISO.
+ This script installs MMA on Nano Server without SCOM/AD dependancies with the intention of attaching only to Azure OMS only.
+ This uses the SCOM/MMA from the SCOM2016 ISO. Please copy the ":\NanoAgent\*" contents to your current path.
  This script has to be run with administrative privileges. The user account which is used to connect to the Nano Server must also have administrative rights on the Nano Server.
+ The .\NanoServer\InstallNanoServerScomAgentOnline.ps1 script was heaviliy modified to cater for this installation. Functionaly may be different from the MMASetup-AMD64 install.
+ Code is also updated at https://github.com/MnrGreg/Install-MMA-on-Nano-Server
 
 .SYNOPSIS 
-Remotely installs the Microsoft Monitoring Agent on to Nano Servers. 
+Remotely installs the Microsoft Monitoring Agent on to Nano Servers.
 
 .EXAMPLE
-Install-MMA-on-Nano-Server.ps1 MyNanoServerName 1234567 1234567
+Install-MMA-on-Nano-Server.ps1 MyNanoServerName MyOMSWorkSpaceID MyOMSWorkSpaceKey
 
 #> 
 
