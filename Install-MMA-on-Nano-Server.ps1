@@ -1,7 +1,7 @@
 ﻿
 <#PSScriptInfo
 
-.VERSION 1.0.2
+.VERSION 1.0.4
 
 .GUID 5da7965b-b1bc-4e4b-80ff-9fd89192cc7f
 
@@ -11,7 +11,7 @@
 
 .COPYRIGHT 
 
-.TAGS Nano MMA Microsoft Monitoring Agent
+.TAGS Nano MMA/SCOM Microsoft Monitoring Agent
 
 .LICENSEURI 
 
@@ -33,8 +33,8 @@
 <# 
 
 .DESCRIPTION 
- This script installs MMA on Nano Server without SCOM dependancies.
- The agent install file MMASetup-AMD64.exe must exist in the current path. Download from https://go.microsoft.com/fwlink/?LinkId=828603 or your OMS workspace.
+ This script installs MMA on Nano Server without SCOM/AD dependancies for attaching to Azure OMS only.
+ The SCOM/MMA agent install files "\NanoAgent\" must exist in the current path. Copy the folder from your SCOM2016 ISO.
  This script has to be run with administrative privileges. The user account which is used to connect to the Nano Server must also have administrative rights on the Nano Server.
 
 .SYNOPSIS 
@@ -55,23 +55,28 @@ Write-Output "`nAdding $NanoServer to local WSMAN TrustedHosts client list"
 Set-Item wsman:localhost\Client\TrustedHosts "$NanoServer" -Concatenate –Force
 Write-Output "`nInitiating PSSession to $NanoServer"
 $TargetSession = new-PSSession -ComputerName $NanoServer -Credential (Get-Credential)
-Write-Output "Copying MMASetup-AMD64.exe file to $NanoServer C:\"
-Copy-Item -Path ".\MMASetup-AMD64.exe" -Destination "C:\" -force -ToSession $TargetSession -Verbose
+Write-Output "Copying MOM Agent files to $NanoServer C:\MMA-Nano-Agent"
+
+Copy-Item -Path ".\" -Destination "C:\MMA-Nano-Agent"  -recurse -force -ToSession $TargetSession -Verbose
 If ($?) {
     New-PSSession $TargetSession
-    Write-Output "`nExecuting remote installation with:  `n Workspace ID: $OPSINSIGHTS_WS_ID  `n Workspace Key: $OPSINSIGHTS_WS_KEY"
-    $installcmd = "C:\MMASetup-AMD64.exe"
-    $installargs = "/Q:A /R:N /C:""setup.exe /qn ADD_OPINSIGHTS_WORKSPACE=1 OPINSIGHTS_WORKSPACE_ID=$OPSINSIGHTS_WS_ID OPINSIGHTS_WORKSPACE_KEY=$OPSINSIGHTS_WS_KEY AcceptEndUserLicenseAgreement=1"""
-    Invoke-command -session $TargetSession -scriptblock {
-        param($Rinstallcmd, $Rinstallargs)
-        Write-Output "`n$Rinstallcmd $Rinstallargs"
-        start-process $Rinstallcmd -ArgumentList $Rinstallargs -Wait
-        Write-Output "`nWaiting 20 seconds for HealthService to bootstrap and start"
-        Start-Sleep -s 20
-        Get-Service healthservice
-        Remove-Item C:\MMASetup-AMD64.exe -Force } -ArgumentList $installcmd, $installargs
-}
-Else {
-    Write-Output "Unable to Copy File. Check Powershell version = WMF5 and MMASetup-AMD64.exe (https://go.microsoft.com/fwlink/?LinkId=828603) is in current path."
-    Break
-}
+    Write-Output "`nExecuting remote agent installation..."
+    Invoke-command -session $TargetSession -FilePath .\InstallLocalScomAgent.ps1
+
+    Write-Output "`nApplying OMS Workspace keys:  `n Workspace ID: $OPSINSIGHTS_WS_ID  `n Workspace Key: $OPSINSIGHTS_WS_KEY"
+    Invoke-Command  -session $TargetSession -ScriptBlock {
+        param($ROPSINSIGHTS_WS_ID, $ROPSINSIGHTS_WS_KEY)
+        $mma = New-Object -ComObject 'AgentConfigManager.MgmtSvcCfg'
+        $mma.AddCloudWorkspace($ROPSINSIGHTS_WS_ID,$ROPSINSIGHTS_WS_KEY)
+        $mma.ReloadConfiguration()
+        }   -ArgumentList $OPSINSIGHTS_WS_ID, $OPSINSIGHTS_WS_KEY
+    
+    Write-Output "Attempting to start HealthService"
+    Invoke-Command  -session $TargetSession -ScriptBlock {
+        Get-Service -Name HealthService  | Set-Service -Status Running
+        }   
+    }   
+    Else {
+        Write-Output "Unable to Copy File. Check Powershell version = WMF5 and MOMAgent is in current path."
+        Break
+    }
